@@ -22,12 +22,15 @@ export class PrismaService
       }),
     });
   }
+
   async onModuleInit() {
     await this.$connect();
   }
+
   async onModuleDestroy() {
     await this.$disconnect();
   }
+
   async atomic<T>(
     operation: (tx: Prisma.TransactionClient) => Promise<T>,
   ): Promise<T> {
