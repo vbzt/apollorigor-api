@@ -1,6 +1,29 @@
 import { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { addResponseSchemas } from './response-schemas.js';
+
+const previousMethodNames: Record<string, Record<string, string>> = {
+  ProductsController: {
+    read: 'list',
+    readIncludingInactive: 'all',
+    readOne: 'one',
+    readAvailability: 'availability',
+  },
+  OrdersController: { read: 'list', readOne: 'one' },
+  TransactionsController: {
+    read: 'list',
+    readConflicts: 'conflicts',
+    readOne: 'one',
+  },
+  AuthController: {
+    requestPasswordReset: 'recover',
+    resetPassword: 'reset',
+    readProfile: 'me',
+    updateProfile: 'update',
+  },
+  ProfilesController: { read: 'list' },
+};
+
 export function createOpenApi(app: INestApplication) {
   const document = SwaggerModule.createDocument(
     app,
@@ -12,6 +35,10 @@ export function createOpenApi(app: INestApplication) {
       )
       .addBearerAuth()
       .build(),
+    {
+      operationIdFactory: (controller, method) =>
+        `${controller}_${previousMethodNames[controller]?.[method] ?? method}`,
+    },
   );
   for (const path of Object.values(document.paths)) {
     for (const method of ['get', 'post', 'patch', 'delete'] as const) {
