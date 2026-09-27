@@ -38,6 +38,18 @@ enum PaymentStatus {
   CANCELLED
   REFUNDED
 }
+enum Relationship {
+  NOIVO
+  NOIVA
+  PAI
+  PADRINHO
+  CONVIDADO
+  OUTRO
+}
+enum PackageStatus {
+  PENDING
+  CONFIRMED
+}
 model Profile {
   id         String @id @default(uuid()) @db.Uuid
   authUserId String @unique @db.Uuid
@@ -124,12 +136,16 @@ model Transaction {
   cancelledAt  DateTime? @db.Timestamptz(3)
   damageNotes  String?
   createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  weddingPackageId String?         @db.Uuid
+  relationship     Relationship?
+  weddingPackage   WeddingPackage? @relation(fields: [weddingPackageId], references: [id], onDelete: Restrict)
   profile      Profile @relation(fields: [profileId], references: [id], onDelete: Restrict)
   variant      Variant @relation(fields: [variantId], references: [id], onDelete: Restrict)
   order        Order? @relation(fields: [orderId], references: [id], onDelete: Restrict)
   payment      Payment?
   @@index([variantId, status, startDate, endDate])
   @@index([profileId, createdAt])
+  @@index([weddingPackageId])
 }
 model Payment {
   id            String @id @default(uuid()) @db.Uuid
@@ -144,4 +160,18 @@ model Payment {
 model RevokedToken {
   digest    String @id
   expiresAt DateTime @db.Timestamptz(3)
+}
+model WeddingPackage {
+  id                String        @id @default(uuid()) @db.Uuid
+  contractNumber    String        @unique
+  brideName         String
+  groomName         String
+  eventDate         DateTime      @db.Date
+  pickupWindowStart DateTime      @db.Date
+  pickupWindowEnd   DateTime      @db.Date
+  closingDate       DateTime      @db.Date
+  status            PackageStatus @default(PENDING)
+  createdAt         DateTime      @default(now()) @db.Timestamptz(3)
+  transactions Transaction[]
+  @@index([contractNumber])
 }
