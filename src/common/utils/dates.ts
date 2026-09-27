@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+
 export function today() {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Sao_Paulo',
@@ -16,6 +17,7 @@ export function today() {
       'T00:00:00.000Z',
   );
 }
+
 export function parseDay(value: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value))
     throw new BadRequestException('Use datas YYYY-MM-DD.');
@@ -27,6 +29,7 @@ export function parseDay(value: string) {
     throw new BadRequestException('Data inválida.');
   return date;
 }
+
 export function operationDates(
   type: 'SALE' | 'RENTAL',
   start?: string | null,

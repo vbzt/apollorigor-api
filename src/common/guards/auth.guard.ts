@@ -14,6 +14,7 @@ export class AuthGuard implements CanActivate {
     private readonly reflector: Reflector,
     private readonly auth: AuthService,
   ) {}
+
   async canActivate(context: ExecutionContext) {
     if (
       this.reflector.getAllAndOverride<boolean>('public', [
