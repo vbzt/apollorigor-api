@@ -14,7 +14,7 @@ import { CreateWeddingPackageDto } from './dto/create-wedding.dto.js';
 @ApiTags('Wedding Packages')
 @ApiBearerAuth()
 @Controller('wedding-packages')
-export class WeddingPackagesController {
+export class WeddingPackageController {
   constructor(private readonly service: WeddingPackageService) {}
 
   @Get(':id')
