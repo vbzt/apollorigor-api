@@ -8,7 +8,7 @@ export class ParticipantDto {
 }
 
 export class ClothingItemDto {
-  relationship!: Relationship;
+  relationship!: Relationship | null;
   model!: string;
   fabric!: string | null;
   color!: string | null;
