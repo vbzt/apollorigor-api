@@ -11,6 +11,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { ProductsModule } from './modules/products/products.module.js';
 import { OrdersModule } from './modules/orders/orders.module.js';
 import { TransactionsModule } from './modules/transactions/transactions.module.js';
+import { WeddingPackageModule } from './modules/wedding/wedding-package.module.js';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { TransactionsModule } from './modules/transactions/transactions.module.j
     ProductsModule,
     OrdersModule,
     TransactionsModule,
+    WeddingPackageModule,
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }]),
   ],
   controllers: [AppController],
