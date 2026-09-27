@@ -18,6 +18,7 @@ export class SupabaseService {
       },
     );
   }
+
   async authenticatedRequest(
     path: string,
     token: string,

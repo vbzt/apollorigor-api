@@ -9,7 +9,9 @@ import { createHash } from 'node:crypto';
 import type { User, Session } from '@supabase/supabase-js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SupabaseService } from './supabase.service.js';
-import { LoginDto, RegisterDto, UpdateProfileDto } from './dto/auth.dto.js';
+import { LoginDto } from './dto/login.dto.js';
+import { RegisterDto } from './dto/register.dto.js';
+import { UpdateProfileDto } from './dto/update-profile.dto.js';
 @Injectable()
 export class AuthService {
   constructor(
@@ -17,9 +19,11 @@ export class AuthService {
     private readonly supabase: SupabaseService,
     private readonly config: ConfigService,
   ) {}
+
   private digest(token: string) {
     return createHash('sha256').update(token).digest('hex');
   }
+
   async ensureProfile(user: User) {
     const name: unknown = user.user_metadata?.name;
     return this.prisma.profile.upsert({
@@ -33,6 +37,7 @@ export class AuthService {
       update: { email: user.email ?? '' },
     });
   }
+
   private session(session: Session) {
     return {
       accessToken: session.access_token,
@@ -42,6 +47,7 @@ export class AuthService {
       tokenType: 'Bearer',
     };
   }
+
   async register(dto: RegisterDto) {
     const { data, error } = await this.supabase.create().auth.signUp({
       email: dto.email,
@@ -63,6 +69,7 @@ export class AuthService {
       session: data.session ? this.session(data.session) : null,
     };
   }
+
   async login(dto: LoginDto) {
     const { data, error } = await this.supabase
       .create()
@@ -76,6 +83,7 @@ export class AuthService {
       user: await this.ensureProfile(data.user),
     };
   }
+
   async refresh(refreshToken: string) {
     const { data, error } = await this.supabase
       .create()
@@ -87,6 +95,7 @@ export class AuthService {
       user: await this.ensureProfile(data.user),
     };
   }
+
   async authenticate(token: string) {
     if (
       await this.prisma.revokedToken.findUnique({
@@ -99,6 +108,7 @@ export class AuthService {
       throw new UnauthorizedException('Sessão inválida.');
     return this.ensureProfile(data.user);
   }
+
   async logout(token: string) {
     // The guard has already verified this token. Block it locally as Supabase access JWTs survive sign-out until expiry.
     const payload = JSON.parse(
@@ -124,7 +134,8 @@ export class AuthService {
     });
     return { message: 'Sessão encerrada.' };
   }
-  async recover(email: string) {
+
+  async requestPasswordReset(email: string) {
     const { error } = await this.supabase
       .create()
       .auth.resetPasswordForEmail(email, {
@@ -140,6 +151,7 @@ export class AuthService {
       message: 'Se houver uma conta, as instruções serão enviadas por e-mail.',
     };
   }
+
   async resetPassword(token: string, password: string) {
     const response = await this.supabase
       .authenticatedRequest('user', token, 'PUT', { password })
@@ -148,6 +160,7 @@ export class AuthService {
       throw new BadRequestException('Não foi possível atualizar a senha.');
     return { message: 'Senha atualizada.' };
   }
+
   updateProfile(id: string, data: UpdateProfileDto) {
     return this.prisma.profile.update({ where: { id }, data });
   }
