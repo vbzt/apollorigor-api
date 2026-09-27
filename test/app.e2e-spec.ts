@@ -35,7 +35,7 @@ describe('HTTP: validação e permissões', () => {
             FRONTEND_URL: 'http://localhost:5173',
           }),
         },
-        { provide: ProductsService, useValue: { create, list: () => [] } },
+        { provide: ProductsService, useValue: { create, read: () => [] } },
         { provide: TransactionsService, useValue: { confirm } },
         {
           provide: AuthService,
