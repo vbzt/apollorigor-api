@@ -6,9 +6,10 @@ import {
 import { randomBytes } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { Profile } from '../../generated/prisma/client.js';
-import { CreateOrderDto } from './dto/order.dto.js';
+import { CreateOrderDto } from './dto/create-order.dto.js';
 import { operationDates } from '../../common/utils/dates.js';
-import { PageDto, pagination } from '../../common/dto/page.dto.js';
+import { PageDto } from '../../common/dto/page.dto.js';
+import { pagination } from '../../common/utils/pagination.js';
 const include = {
   history: { orderBy: { createdAt: 'asc' as const } },
   transaction: true,
@@ -17,10 +18,12 @@ const include = {
 @Injectable()
 export class OrdersService {
   constructor(private readonly prisma: PrismaService) {}
+
   private scope(user: Profile) {
     return user.role === 'ADMIN' ? {} : { profileId: user.id };
   }
-  list(user: Profile, query: PageDto) {
+
+  read(user: Profile, query: PageDto) {
     return this.prisma.order.findMany({
       where: this.scope(user),
       include,
@@ -28,7 +31,8 @@ export class OrdersService {
       ...pagination(query),
     });
   }
-  async one(id: string, user: Profile) {
+
+  async readOne(id: string, user: Profile) {
     const order = await this.prisma.order.findFirst({
       where: { id, ...this.scope(user) },
       include,
@@ -36,6 +40,7 @@ export class OrdersService {
     if (!order) throw new NotFoundException('Pedido não encontrado.');
     return order;
   }
+
   create(user: Profile, dto: CreateOrderDto) {
     return this.prisma.atomic(async (tx) => {
       const variant = await tx.variant.findUnique({
@@ -67,6 +72,7 @@ export class OrdersService {
       });
     });
   }
+
   transition(
     id: string,
     action: 'review' | 'approve' | 'reject',
