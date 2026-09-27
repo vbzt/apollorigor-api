@@ -187,7 +187,7 @@ test('retirada sem pagamento e devolução parcial do acervo são permitidas', a
     2,
   );
   assert.equal(
-    (await transactions.one(rental.id, client)).damageNotes,
+    (await transactions.readOne(rental.id, client)).damageNotes,
     'Sem avarias',
   );
   assert.equal((await transactions.checkout(rental.id, client)).status, 'PAID');
@@ -195,7 +195,10 @@ test('retirada sem pagamento e devolução parcial do acervo são permitidas', a
 test('cliente não acessa nem paga operação alheia', async () => {
   const sale = await draft((await fixture()).id, 'SALE');
   await transactions.confirm(sale.id);
-  await assert.rejects(transactions.one(sale.id, outsider), /não encontrada/);
+  await assert.rejects(
+    transactions.readOne(sale.id, outsider),
+    /não encontrada/,
+  );
   await assert.rejects(
     transactions.checkout(sale.id, outsider),
     /não encontrada/,
@@ -214,7 +217,7 @@ test('atraso bloqueia novas reservas e sinaliza conflito com reserva anterior', 
   });
   const extra = await draft(v.id, 'RENTAL', 8, 9);
   await assert.rejects(transactions.confirm(extra.id), /disponibilidade/);
-  const result = await transactions.conflicts();
+  const result = await transactions.readConflicts();
   assert.ok(
     result.conflicts.some(
       (c) =>

@@ -10,12 +10,11 @@ import type {
   Profile,
   Transaction,
 } from '../../generated/prisma/client.js';
-import {
-  CreateTransactionDto,
-  UpdateTransactionDto,
-} from './dto/transaction.dto.js';
+import { CreateTransactionDto } from './dto/create-transaction.dto.js';
+import { UpdateTransactionDto } from './dto/update-transaction.dto.js';
 import { operationDates, today } from '../../common/utils/dates.js';
-import { PageDto, pagination } from '../../common/dto/page.dto.js';
+import { PageDto } from '../../common/dto/page.dto.js';
+import { pagination } from '../../common/utils/pagination.js';
 const include = { payment: true, variant: { include: { product: true } } };
 @Injectable()
 export class TransactionsService {
@@ -23,10 +22,12 @@ export class TransactionsService {
     private readonly prisma: PrismaService,
     private readonly stock: StockService,
   ) {}
+
   private scope(user: Profile) {
     return user.role === 'ADMIN' ? {} : { profileId: user.id };
   }
-  list(user: Profile, query: PageDto) {
+
+  read(user: Profile, query: PageDto) {
     return this.prisma.transaction.findMany({
       where: this.scope(user),
       include,
@@ -34,7 +35,8 @@ export class TransactionsService {
       ...pagination(query),
     });
   }
-  async one(id: string, user: Profile) {
+
+  async readOne(id: string, user: Profile) {
     const row = await this.prisma.transaction.findFirst({
       where: { id, ...this.scope(user) },
       include,
@@ -42,7 +44,8 @@ export class TransactionsService {
     if (!row) throw new NotFoundException('Transação não encontrada.');
     return row;
   }
-  async conflicts() {
+
+  async readConflicts() {
     const rows = await this.prisma.transaction.findMany({
       where: { type: 'RENTAL', status: 'CONFIRMED' },
       include,
@@ -72,6 +75,7 @@ export class TransactionsService {
         .map((r) => r.id),
     };
   }
+
   create(dto: CreateTransactionDto) {
     return this.prisma.atomic(async (tx) => {
       if (!(await tx.profile.findUnique({ where: { id: dto.profileId } })))
@@ -98,9 +102,10 @@ export class TransactionsService {
       });
     });
   }
+
   update(id: string, dto: UpdateTransactionDto) {
     return this.prisma.atomic(async (tx) => {
-      const row = await this.get(tx, id);
+      const row = await this.findTransactionOrThrow(tx, id);
       if (row.status !== 'DRAFT')
         throw new ConflictException('Somente rascunhos podem ser editados.');
       if (dto.variantId) {
@@ -123,11 +128,16 @@ export class TransactionsService {
       });
     });
   }
-  private async get(tx: Prisma.TransactionClient, id: string) {
+
+  private async findTransactionOrThrow(
+    tx: Prisma.TransactionClient,
+    id: string,
+  ) {
     const row = await tx.transaction.findUnique({ where: { id }, include });
     if (!row) throw new NotFoundException('Transação não encontrada.');
     return row;
   }
+
   private async assertCapacity(tx: Prisma.TransactionClient, row: Transaction) {
     const dates = operationDates(
       row.type,
@@ -146,9 +156,10 @@ export class TransactionsService {
         'Sem disponibilidade para confirmar esta operação.',
       );
   }
+
   confirm(id: string) {
     return this.prisma.atomic(async (tx) => {
-      const row = await this.get(tx, id);
+      const row = await this.findTransactionOrThrow(tx, id);
       if (row.status === 'CONFIRMED' || row.status === 'COMPLETED') return row;
       if (row.status !== 'DRAFT')
         throw new ConflictException('Operação cancelada.');
@@ -169,9 +180,10 @@ export class TransactionsService {
       });
     });
   }
+
   cancel(id: string) {
     return this.prisma.atomic(async (tx) => {
-      const row = await this.get(tx, id);
+      const row = await this.findTransactionOrThrow(tx, id);
       if (row.status === 'CANCELLED') return row;
       if (row.status === 'COMPLETED' || row.pickedUpAt)
         throw new ConflictException('Operação já entregue ou retirada.');
@@ -194,9 +206,10 @@ export class TransactionsService {
       });
     });
   }
+
   pickup(id: string) {
     return this.prisma.atomic(async (tx) => {
-      const row = await this.get(tx, id);
+      const row = await this.findTransactionOrThrow(tx, id);
       if (row.type !== 'RENTAL')
         throw new ConflictException('Retirada disponível apenas para locação.');
       if (row.pickedUpAt) return row;
@@ -223,9 +236,10 @@ export class TransactionsService {
       });
     });
   }
+
   complete(id: string, action: 'deliver' | 'return', damageNotes?: string) {
     return this.prisma.atomic(async (tx) => {
-      const row = await this.get(tx, id);
+      const row = await this.findTransactionOrThrow(tx, id);
       if ((action === 'deliver') !== (row.type === 'SALE'))
         throw new ConflictException(
           'Ação incompatível com o tipo de operação.',
@@ -249,6 +263,7 @@ export class TransactionsService {
       });
     });
   }
+
   checkout(id: string, user: Profile) {
     return this.prisma.atomic(async (tx) => {
       const row = await tx.transaction.findFirst({
